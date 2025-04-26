@@ -34,6 +34,7 @@ class DownloadWorker:
             client_secret=settings.SPOTIFY_CLIENT_SECRET,
             output_root=settings.MUSIC_LIBRARY_PATH
         )
+        self._cleanup_stale_tasks()
     
     def run(self):
         """持续运行，处理下载任务"""
@@ -172,6 +173,25 @@ class DownloadWorker:
         )
         
         logging.info(f"任务 {task_id} 已{'成功' if success else '失败'}{f': {error}' if error else ''}")
+
+    def _cleanup_stale_tasks(self):
+        """
+        清理由于崩溃或强制终止而卡在'in_progress'状态的任务
+        """
+        try:
+            logging.info(f"检查并清理卡住的任务...")
+
+            # 重置所有分配给此worker的处于in_progress状态的任务
+            reset_count = self.db["download_tasks"].update_many(
+                {"worker_id": self.worker_id, "status": "in_progress"},
+                {"$set": {"status": "pending", "worker_id": None}}
+            ).modified_count
+
+            if reset_count > 0:
+                logging.info(f"已重置 {reset_count} 个分配给此worker但卡住的任务")
+
+        except Exception as e:
+            logging.error(f"清理卡住任务时出错: {e}")
 
 def run_worker(worker_id=None, poll_interval=None):
     """运行下载工作者"""
