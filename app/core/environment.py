@@ -15,9 +15,6 @@ class Environment(str, Enum):
 
 class DevelopmentSettings(Settings):
     """开发环境配置"""
-    # 开发数据库
-    MONGODB_DB: str = "spyt_music_dev"
-
     LOG_LEVEL: str = "DEBUG"
 
     # 开发环境特定配置

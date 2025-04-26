@@ -221,3 +221,34 @@ class DownloadTaskRepository(BaseRepository):
             query["status"] = status
         
         return await self.find(query, sort=[("created_at", -1)])
+    
+    async def assign_task(self, task_id: str, worker_id: str) -> bool:
+        """
+        将任务分配给指定的工作者
+        
+        参数:
+            task_id: 任务ID
+            worker_id: 工作者ID
+            
+        返回:
+            bool: 是否成功分配
+        """
+        from app.db.schemas import STATUS_IN_PROGRESS
+        
+        # 更新任务状态为进行中，并分配给工作者
+        result = await self.update_one(
+            {"task_id": task_id, "status": "pending"},  # 只更新状态为pending的任务
+            {
+                "$set": {
+                    "status": STATUS_IN_PROGRESS,
+                    "worker_id": worker_id,
+                    "started_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        # 如果没有找到匹配的文档或更新失败
+        if not result or result.get('matched_count', 0) == 0:
+            return False
+            
+        return True

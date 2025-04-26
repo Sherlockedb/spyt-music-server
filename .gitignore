@@ -43,3 +43,10 @@ logs/
 
 # Project specific
 music_lib/
+
+# spotdl cache
+.cache
+
+# download dir
+music_library
+

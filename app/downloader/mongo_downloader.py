@@ -1,35 +1,38 @@
 import logging
 from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure, PyMongoError
-from base_downloader import BaseSpotifyDownloader
+from pymongo.errors import PyMongoError
+
+from app.downloader.base_downloader import BaseSpotifyDownloader
+from app.core.config import settings
 
 class MongoDBSpotifyDownloader(BaseSpotifyDownloader):
     """
-    使用 MongoDB 存储统计信息和元数据的 Spotify 下载器
+    MongoDB Spotify 下载器 - 同步版本
     """
     
-    def __init__(self, client_id=None, client_secret=None, output_root="music_lib", 
-                 output_format="{album}/[{artist}] {track-number}-{title}.{output-ext}", 
-                 use_artist_dir=True, max_retries=3, retry_delay=5, log_file=None,
-                 mongo_uri="mongodb://localhost:27017/", 
-                 db_name="spotify_downloader", 
+    def __init__(self, mongodb_url=None, db_name=None, client_id=None, client_secret=None, 
+                 output_root=None, output_format=None, use_artist_dir=True, 
+                 max_retries=None, retry_delay=None, log_file=None,
                  collection_prefix=""):
-        """
-        初始化 MongoDBSpotifyDownloader 类
+        """初始化下载器"""
+        # 使用配置中的默认值
+        client_id = client_id or settings.SPOTIFY_CLIENT_ID
+        client_secret = client_secret or settings.SPOTIFY_CLIENT_SECRET
+        output_root = output_root or settings.MUSIC_LIBRARY_PATH
+        mongodb_url = mongodb_url or settings.MONGODB_URL
+        db_name = db_name or settings.MONGODB_DB
         
-        参数:
-            client_id: Spotify API 客户端 ID
-            client_secret: Spotify API 客户端密钥
-            output_root: 输出根目录
-            output_format: 输出文件格式（不含艺术家目录部分）
-            use_artist_dir: 是否使用艺术家名称作为上层目录
-            max_retries: 下载重试次数
-            retry_delay: 重试间隔时间(秒)
-            log_file: 日志文件路径
-            mongo_uri: MongoDB 连接 URI
-            db_name: 数据库名称
-            collection_prefix: 集合名称前缀，用于区分不同的实例
-        """
+        # 如果没有指定输出格式，使用默认格式
+        if output_format is None:
+            output_format = "{album}/[{artists}] {track-number}-{title}.{output-ext}"
+        
+        # 如果没有指定重试参数，使用默认值
+        max_retries = max_retries if max_retries is not None else 3
+        retry_delay = retry_delay if retry_delay is not None else 5
+        
+        # 如果没有指定日志文件，使用配置中的值
+        log_file = log_file or settings.LOG_FILE
+        
         super().__init__(
             client_id=client_id,
             client_secret=client_secret,
@@ -41,60 +44,27 @@ class MongoDBSpotifyDownloader(BaseSpotifyDownloader):
             log_file=log_file
         )
         
-        self.mongo_uri = mongo_uri
-        self.db_name = db_name
+        # 初始化MongoDB连接
+        self.client = MongoClient(mongodb_url)
+        self.db = self.client[db_name]
         self.collection_prefix = collection_prefix
-        
-        # 初始化 MongoDB 连接
-        self._init_mongodb()
     
-    def _init_mongodb(self):
-        """初始化 MongoDB 连接"""
-        try:
-            self.client = MongoClient(self.mongo_uri)
-            # 测试连接
-            self.client.admin.command('ping')
-            logging.info(f"已连接到 MongoDB: {self.mongo_uri}")
-            
-            # 获取数据库
-            self.db = self.client[self.db_name]
-            logging.info(f"使用数据库: {self.db_name}")
-            
-        except ConnectionFailure as e:
-            logging.error(f"MongoDB 连接失败: {e}")
-            raise
-        except Exception as e:
-            logging.error(f"初始化 MongoDB 时出错: {e}")
-            raise
-    
-    def _get_stats_collection(self, entity_type):
-        """获取统计信息集合"""
-        return self.db[f"{self.collection_prefix}{entity_type}_stats"]
-    
-    def _get_info_collection(self, entity_type):
-        """获取元数据信息集合"""
-        return self.db[f"{self.collection_prefix}{entity_type}_info"]
+    def _get_collection_name(self, entity_type, suffix):
+        """获取集合名称"""
+        return f"{self.collection_prefix}{entity_type}_{suffix}"
     
     def _save_stats(self, entity_type, entity_id, stats):
-        """
-        将统计信息保存到 MongoDB
-        
-        参数:
-            entity_type: 实体类型 ('track', 'album', 'artist')
-            entity_id: 实体ID
-            stats: 统计信息
-        
-        返回:
-            bool: 是否保存成功
-        """
+        """将统计信息保存到 MongoDB"""
         try:
-            collection = self._get_stats_collection(entity_type)
+            collection_name = self._get_collection_name(entity_type, "stats")
+            collection = self.db[collection_name]
             
             # 将 entity_id 作为 _id 字段
-            stats['_id'] = entity_id
+            stats_copy = stats.copy()
+            stats_copy['_id'] = entity_id
             
             # 使用 upsert=True 来插入或更新
-            result = collection.replace_one({'_id': entity_id}, stats, upsert=True)
+            collection.replace_one({'_id': entity_id}, stats_copy, upsert=True)
             
             logging.info(f"统计信息已保存到 MongoDB: {entity_type}_{entity_id}")
             return True
@@ -103,19 +73,10 @@ class MongoDBSpotifyDownloader(BaseSpotifyDownloader):
             return False
     
     def _save_info(self, entity_type, entity_id, info):
-        """
-        将元数据信息保存到 MongoDB
-        
-        参数:
-            entity_type: 实体类型 ('track', 'album', 'artist')
-            entity_id: 实体ID
-            info: 元数据信息
-        
-        返回:
-            bool: 是否保存成功
-        """
+        """将元数据信息保存到 MongoDB"""
         try:
-            collection = self._get_info_collection(entity_type)
+            collection_name = self._get_collection_name(entity_type, "info")
+            collection = self.db[collection_name]
             
             # 创建一个新的文档，包含 _id 和元数据
             document = {
@@ -124,7 +85,7 @@ class MongoDBSpotifyDownloader(BaseSpotifyDownloader):
             }
             
             # 使用 upsert=True 来插入或更新
-            result = collection.replace_one({'_id': entity_id}, document, upsert=True)
+            collection.replace_one({'_id': entity_id}, document, upsert=True)
             
             logging.info(f"元数据信息已保存到 MongoDB: {entity_type}_{entity_id}")
             return True
@@ -133,25 +94,20 @@ class MongoDBSpotifyDownloader(BaseSpotifyDownloader):
             return False
     
     def _load_stats(self, entity_type, entity_id):
-        """
-        从 MongoDB 加载统计信息
-        
-        参数:
-            entity_type: 实体类型 ('track', 'album', 'artist')
-            entity_id: 实体ID
-        
-        返回:
-            dict|None: 统计信息，如果不存在则返回None
-        """
+        """从 MongoDB 加载统计信息"""
         try:
-            collection = self._get_stats_collection(entity_type)
+            collection_name = self._get_collection_name(entity_type, "stats")
+            collection = self.db[collection_name]
+            
             document = collection.find_one({'_id': entity_id})
             
             if document:
                 logging.info(f"从 MongoDB 加载了统计信息: {entity_type}_{entity_id}")
                 # 删除 _id 字段，使结果与基类期望的格式一致
                 if '_id' in document:
-                    del document['_id']
+                    document_copy = document.copy()
+                    del document_copy['_id']
+                    return document_copy
                 return document
             else:
                 logging.info(f"MongoDB 中没有找到统计信息: {entity_type}_{entity_id}")
@@ -162,18 +118,11 @@ class MongoDBSpotifyDownloader(BaseSpotifyDownloader):
             return None
     
     def _load_info(self, entity_type, entity_id):
-        """
-        从 MongoDB 加载元数据信息
-        
-        参数:
-            entity_type: 实体类型 ('track', 'album', 'artist')
-            entity_id: 实体ID
-        
-        返回:
-            dict|None: 元数据信息，如果不存在则返回None
-        """
+        """从 MongoDB 加载元数据信息"""
         try:
-            collection = self._get_info_collection(entity_type)
+            collection_name = self._get_collection_name(entity_type, "info")
+            collection = self.db[collection_name]
+            
             document = collection.find_one({'_id': entity_id})
             
             if document and 'info' in document:
@@ -188,10 +137,7 @@ class MongoDBSpotifyDownloader(BaseSpotifyDownloader):
             return None
     
     def close(self):
-        """关闭 MongoDB 连接"""
-        try:
-            if hasattr(self, 'client'):
-                self.client.close()
-                logging.info("已关闭 MongoDB 连接")
-        except Exception as e:
-            logging.error(f"关闭 MongoDB 连接时出错: {e}")
+        """关闭MongoDB连接"""
+        if hasattr(self, 'client'):
+            self.client.close()
+            logging.info("已关闭MongoDB连接")
