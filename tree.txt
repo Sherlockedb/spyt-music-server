@@ -1,0 +1,99 @@
+music_service/
+│
+├── app/                      # 应用主目录
+│   ├── __init__.py           # 使目录成为包
+│   ├── main.py               # FastAPI 应用入口点
+│   ├── core/                 # 核心模块
+│   │   ├── __init__.py
+│   │   ├── config.py         # 配置管理
+│   │   ├── security.py       # 安全相关功能
+│   │   └── logging.py        # 日志配置
+│   │
+│   ├── api/                  # API 路由
+│   │   ├── __init__.py
+│   │   ├── deps.py           # 依赖项（如获取当前用户）
+│   │   ├── v1/               # API v1 版本
+│   │   │   ├── __init__.py
+│   │   │   ├── endpoints/    # API 端点
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── users.py
+│   │   │   │   ├── search.py
+│   │   │   │   ├── downloads.py
+│   │   │   │   ├── library.py
+│   │   │   │   └── stream.py
+│   │   │   └── router.py     # v1 API 路由器
+│   │
+│   ├── models/               # 数据模型
+│   │   ├── __init__.py
+│   │   ├── user.py           # 用户模型
+│   │   ├── track.py          # 曲目模型
+│   │   ├── album.py          # 专辑模型
+│   │   ├── artist.py         # 艺术家模型
+│   │   └── task.py           # 任务模型
+│   │
+│   ├── schemas/              # Pydantic 模式
+│   │   ├── __init__.py
+│   │   ├── user.py           # 用户相关的请求/响应模式
+│   │   ├── track.py
+│   │   ├── album.py
+│   │   ├── artist.py
+│   │   └── task.py
+│   │
+│   ├── crud/                 # CRUD 操作
+│   │   ├── __init__.py
+│   │   ├── base.py           # 基础 CRUD 操作
+│   │   ├── user.py
+│   │   ├── track.py
+│   │   ├── album.py
+│   │   ├── artist.py
+│   │   └── task.py
+│   │
+│   ├── services/             # 业务逻辑服务
+│   │   ├── __init__.py
+│   │   ├── spotify_service.py  # Spotify API 服务
+│   │   ├── download_service.py # 下载服务
+│   │   ├── library_service.py  # 媒体库服务
+│   │   └── stream_service.py   # 流媒体服务
+│   │
+│   ├── downloader/           # 下载器模块
+│   │   ├── __init__.py
+│   │   ├── base_downloader.py  # 基础下载器（已有）
+│   │   ├── mongo_downloader.py # MongoDB 下载器（已有）
+│   │   └── queue_downloader.py # 队列下载器（新增）
+│   │
+│   ├── db/                   # 数据库
+│   │   ├── __init__.py
+│   │   ├── mongodb.py        # MongoDB 连接
+│   │   └── init_db.py        # 数据库初始化
+│   │
+│   └── utils/                # 工具函数
+│       ├── __init__.py
+│       └── file_utils.py     # 文件处理工具
+│
+├── worker/                   # 后台工作进程
+│   ├── __init__.py
+│   ├── main.py               # 工作进程入口点
+│   └── tasks/                # 任务处理器
+│       ├── __init__.py
+│       ├── download_tasks.py # 下载任务处理
+│       └── cleanup_tasks.py  # 清理任务
+│
+├── tests/                    # 测试
+│   ├── __init__.py
+│   ├── conftest.py           # 测试配置
+│   ├── test_api/             # API 测试
+│   └── test_services/        # 服务测试
+│
+├── alembic/                  # 数据库迁移（如果需要）
+│
+├── logs/                     # 日志文件目录
+│
+├── .env                      # 环境变量（不提交到版本控制）
+├── .env.example              # 环境变量示例
+├── .gitignore                # Git 忽略文件
+├── requirements.txt          # 项目依赖
+├── requirements-dev.txt      # 开发依赖
+├── Dockerfile                # Docker 配置
+├── docker-compose.yml        # Docker Compose 配置
+├── README.md                 # 项目文档
+└── setup.py                  # 安装脚本
