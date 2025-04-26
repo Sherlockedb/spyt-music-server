@@ -19,7 +19,8 @@ class DownloadTaskRepository(BaseRepository):
         super().__init__(db, DOWNLOAD_TASKS_COLLECTION)
     
     async def create_task(self, task_type: str, entity_id: str, entity_name: str, 
-                          priority: int = 5, options: dict = None) -> str:
+                          priority: int = 5, options: dict = None,
+                          force: bool = False) -> str:
         """
         创建新的下载任务
         
@@ -29,12 +30,29 @@ class DownloadTaskRepository(BaseRepository):
             entity_name: 实体名称
             priority: 优先级 (1-10, 1为最高)
             options: 额外选项
+            force: 是否强制下载，即使已存在成功下载记录
             
         返回:
             任务ID
         """
         # 生成唯一任务ID
-        task_id = str(uuid.uuid4())
+        task_id = f"{task_type}_{entity_id}"
+
+        # 检查任务是否已存在
+        existing_task = await self.find_one({"task_id": task_id})
+        if existing_task and not force:
+            # 如果任务已成功或正在进行中，返回现有任务ID
+            if existing_task["status"] in [STATUS_SUCCESS, STATUS_IN_PROGRESS]:
+                return task_id
+            # 如果任务失败或待处理但没有请求强制重建，也返回现有任务
+            elif existing_task["status"] in [STATUS_FAILED, STATUS_PENDING]:
+                # 可选：重置失败任务状态为pending
+                if existing_task["status"] == STATUS_FAILED:
+                    await self.update_one(
+                        {"task_id": task_id},
+                        {"$set": {"status": STATUS_PENDING, "retries": 0}}
+                    )
+                return task_id
         
         # 创建任务文档
         task = {
@@ -60,6 +78,10 @@ class DownloadTaskRepository(BaseRepository):
             "worker_id": None
         }
         
+        # 删除可能存在的老任务记录
+        if existing_task and force:
+            await self.delete_one({"task_id": task_id})
+
         # 插入任务
         await self.insert_one(task)
         return task_id

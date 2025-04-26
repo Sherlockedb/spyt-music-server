@@ -39,13 +39,14 @@ class DownloaderService:
             output_root=settings.MUSIC_LIBRARY_PATH
         )
     
-    async def create_track_download_task(self, track_id: str, priority: int = 5) -> str:
+    async def create_track_download_task(self, track_id: str, priority: int = 5, force: bool = False) -> str:
         """
         创建曲目下载任务
         
         参数:
             track_id: Spotify 曲目ID
             priority: 优先级 (1-10，1为最高)
+            force: 是否强制下载，即使已存在成功下载记录
             
         返回:
             任务ID
@@ -72,11 +73,12 @@ class DownloaderService:
             task_type=TASK_TYPE_TRACK,
             entity_id=track_id,
             entity_name=track_name,
-            priority=priority
+            priority=priority,
+            force=force,
         )
     
     async def create_album_download_task(self, album_id: str, filter_artist_id: str = None, 
-                                        priority: int = 5) -> str:
+                                        priority: int = 5, force: bool = False) -> str:
         """
         创建专辑下载任务
         
@@ -84,6 +86,7 @@ class DownloaderService:
             album_id: Spotify 专辑ID
             filter_artist_id: 可选，过滤特定艺术家的曲目
             priority: 优先级 (1-10，1为最高)
+            force: 是否强制下载，即使已存在成功下载记录
             
         返回:
             任务ID
@@ -112,12 +115,13 @@ class DownloaderService:
             entity_id=album_id,
             entity_name=album_name,
             priority=priority,
-            options=options
+            options=options,
+            force=force
         )
     
     async def create_artist_download_task(self, artist_id: str, include_singles: bool = True,
                                          include_appears_on: bool = False, min_tracks: int = 0,
-                                         priority: int = 5) -> str:
+                                         priority: int = 5, force: bool = False) -> str:
         """
         创建艺术家下载任务
         
@@ -127,6 +131,7 @@ class DownloaderService:
             include_appears_on: 是否包含艺术家参与的专辑
             min_tracks: 仅下载包含至少指定数量歌曲的专辑，0表示不限制
             priority: 优先级 (1-10，1为最高)
+            force: 是否强制下载，即使已存在成功下载记录
             
         返回:
             任务ID
@@ -157,7 +162,8 @@ class DownloaderService:
             entity_id=artist_id,
             entity_name=artist_name,
             priority=priority,
-            options=options
+            options=options,
+            force=force
         )
     
     async def execute_task(self, task_id: str, worker_id: str) -> bool:
