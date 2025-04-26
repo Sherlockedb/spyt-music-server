@@ -649,7 +649,7 @@ class BaseSpotifyDownloader:
             # 判断是否全部成功
             artist_stats["successful_albums"] = artist_stats.get("successful_albums", 0)
             artist_stats["failed_albums"] = artist_stats.get("failed_albums", 0)
-            is_success = artist_stats["successful_albums"] > 0
+            is_success = artist_stats["failed_albums"] <= 0
 
             if is_success:
                 artist_stats["status"] = "success"
