@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
 
 from app.db.base_repository import BaseRepository
@@ -34,8 +34,8 @@ class PlaylistRepository(BaseRepository):
             "user_id": ObjectId(user_id),
             "public": public,
             "tracks": [],
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         }
         
         return await self.insert_one(playlist)
@@ -76,11 +76,11 @@ class PlaylistRepository(BaseRepository):
             "$push": {
                 "tracks": {
                     "track_id": track_id,
-                    "added_at": datetime.utcnow(),
+                    "added_at": datetime.now(timezone.utc),
                     "position": position
                 }
             },
-            "$set": {"updated_at": datetime.utcnow()}
+            "$set": {"updated_at": datetime.now(timezone.utc)}
         }
         
         return await self.update_one({"_id": ObjectId(playlist_id)}, update)
@@ -89,7 +89,7 @@ class PlaylistRepository(BaseRepository):
         """从播放列表中删除曲目"""
         update = {
             "$pull": {"tracks": {"track_id": track_id}},
-            "$set": {"updated_at": datetime.utcnow()}
+            "$set": {"updated_at": datetime.now(timezone.utc)}
         }
         
         playlist = await self.update_one({"_id": ObjectId(playlist_id)}, update)

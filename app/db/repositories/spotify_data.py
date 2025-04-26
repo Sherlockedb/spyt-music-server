@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base_repository import BaseRepository
 from app.db.schemas import (
@@ -30,8 +30,8 @@ class SpotifyDataRepository:
         document = {
             "_id": artist_id,
             "info": info,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         }
         return await self.artist_info.insert_one(document)
     
@@ -59,8 +59,8 @@ class SpotifyDataRepository:
         document = {
             "_id": album_id,
             "info": info,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         }
         return await self.album_info.insert_one(document)
     
@@ -96,8 +96,8 @@ class SpotifyDataRepository:
         document = {
             "_id": track_id,
             "info": info,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         }
         return await self.track_info.insert_one(document)
     

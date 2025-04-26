@@ -1,5 +1,5 @@
 from typing import Dict, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base_repository import BaseRepository
 from app.db.schemas import SETTINGS_COLLECTION
@@ -38,7 +38,7 @@ class SettingsRepository(BaseRepository):
                     "rate_limit": 100,
                     "reset_interval": 3600
                 },
-                "updated_at": datetime.utcnow(),
+                "updated_at": datetime.now(timezone.utc),
                 "updated_by": "system"
             }
             
@@ -58,7 +58,7 @@ class SettingsRepository(BaseRepository):
             更新后的设置
         """
         # 添加更新信息
-        settings["updated_at"] = datetime.utcnow()
+        settings["updated_at"] = datetime.now(timezone.utc)
         settings["updated_by"] = updated_by
         
         return await self.update_one(
@@ -109,7 +109,7 @@ class SettingsRepository(BaseRepository):
         if "." in key:
             update = {}
             update[key] = value
-            update["updated_at"] = datetime.utcnow()
+            update["updated_at"] = datetime.now(timezone.utc)
             update["updated_by"] = updated_by
             
             result = await self.update_one(
@@ -122,7 +122,7 @@ class SettingsRepository(BaseRepository):
         # 获取当前设置
         settings = await self.get_system_settings()
         settings[key] = value
-        settings["updated_at"] = datetime.utcnow()
+        settings["updated_at"] = datetime.now(timezone.utc)
         settings["updated_by"] = updated_by
         
         result = await self.update_one(

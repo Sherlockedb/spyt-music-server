@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
 
 from app.db.base_repository import BaseRepository
@@ -40,8 +40,8 @@ class UserRepository(BaseRepository):
                 "theme": "light",
                 "quality": "high"
             },
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         }
         
         return await self.insert_one(user)

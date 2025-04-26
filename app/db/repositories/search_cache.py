@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.db.base_repository import BaseRepository
 from app.db.schemas import SEARCH_CACHE_COLLECTION
@@ -32,8 +32,8 @@ class SearchCacheRepository(BaseRepository):
             "query": query,
             "type": search_type,
             "results": results,
-            "created_at": datetime.utcnow(),
-            "expires_at": datetime.utcnow() + timedelta(seconds=ttl_seconds)
+            "created_at": datetime.now(timezone.utc),
+            "expires_at": datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)
         }
         
         # 先删除可能存在的旧缓存
@@ -59,7 +59,7 @@ class SearchCacheRepository(BaseRepository):
         cache = await self.find_one({
             "query": query,
             "type": search_type,
-            "expires_at": {"$gt": datetime.utcnow()}
+            "expires_at": {"$gt": datetime.now(timezone.utc)}
         })
         
         if cache:
@@ -74,5 +74,5 @@ class SearchCacheRepository(BaseRepository):
             删除的文档数
         """
         return await self.delete_many({
-            "expires_at": {"$lt": datetime.utcnow()}
+            "expires_at": {"$lt": datetime.now(timezone.utc)}
         })

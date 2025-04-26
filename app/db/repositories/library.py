@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
 
 from app.db.base_repository import BaseRepository
@@ -37,7 +37,7 @@ class UserLibraryRepository(BaseRepository):
             # 如果已存在，更新添加时间
             await self.update_one(
                 {"_id": existing["_id"]},
-                {"$set": {"added_at": datetime.utcnow()}}
+                {"$set": {"added_at": datetime.now(timezone.utc)}}
             )
             return str(existing["_id"])
         
@@ -46,9 +46,9 @@ class UserLibraryRepository(BaseRepository):
             "user_id": ObjectId(user_id),
             "item_id": item_id,
             "item_type": item_type,
-            "added_at": datetime.utcnow(),
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "added_at": datetime.now(timezone.utc),
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         }
         
         return await self.insert_one(item)
@@ -118,10 +118,10 @@ class PlayHistoryRepository(BaseRepository):
         record = {
             "user_id": ObjectId(user_id),
             "track_id": track_id,
-            "played_at": datetime.utcnow(),
+            "played_at": datetime.now(timezone.utc),
             "play_duration_ms": play_duration_ms,
             "play_context": play_context or {},
-            "created_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc)
         }
         
         return await self.insert_one(record)

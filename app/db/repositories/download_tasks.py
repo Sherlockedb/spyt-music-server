@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from app.db.base_repository import BaseRepository
@@ -70,9 +70,9 @@ class DownloadTaskRepository(BaseRepository):
             "options": options or {},
             "retries": 0,
             "max_retries": 3,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow(),
-            "scheduled_at": datetime.utcnow(),
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+            "scheduled_at": datetime.now(timezone.utc),
             "started_at": None,
             "completed_at": None,
             "worker_id": None
@@ -111,7 +111,7 @@ class DownloadTaskRepository(BaseRepository):
         # 更新任务状态为进行中
         update = {
             "status": STATUS_IN_PROGRESS,
-            "started_at": datetime.utcnow(),
+            "started_at": datetime.now(timezone.utc),
             "worker_id": worker_id
         }
         
@@ -155,7 +155,7 @@ class DownloadTaskRepository(BaseRepository):
         """
         update = {
             "status": STATUS_SUCCESS if success else STATUS_FAILED,
-            "completed_at": datetime.utcnow()
+            "completed_at": datetime.now(timezone.utc)
         }
         
         if error:
@@ -189,7 +189,7 @@ class DownloadTaskRepository(BaseRepository):
         update = {
             "status": STATUS_PENDING,
             "retries": retries + 1,
-            "scheduled_at": datetime.utcnow(),
+            "scheduled_at": datetime.now(timezone.utc),
             "started_at": None,
             "worker_id": None
         }
@@ -264,7 +264,7 @@ class DownloadTaskRepository(BaseRepository):
                 "$set": {
                     "status": STATUS_IN_PROGRESS,
                     "worker_id": worker_id,
-                    "started_at": datetime.utcnow()
+                    "started_at": datetime.now(timezone.utc)
                 }
             }
         )

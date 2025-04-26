@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Optional, TypeVar, Generic, Type
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorDatabase
 from pymongo import ReturnDocument
@@ -79,8 +79,8 @@ class BaseRepository:
         """
         # 添加创建和更新时间
         if "created_at" not in document:
-            document["created_at"] = datetime.utcnow()
-        document["updated_at"] = datetime.utcnow()
+            document["created_at"] = datetime.now(timezone.utc)
+        document["updated_at"] = datetime.now(timezone.utc)
         
         result = await self.collection.insert_one(document)
         return str(result.inserted_id)
@@ -104,9 +104,9 @@ class BaseRepository:
         
         # 添加更新时间
         if "$set" in update:
-            update["$set"]["updated_at"] = datetime.utcnow()
+            update["$set"]["updated_at"] = datetime.now(timezone.utc)
         else:
-            update["$set"] = {"updated_at": datetime.utcnow()}
+            update["$set"] = {"updated_at": datetime.now(timezone.utc)}
         
         return await self.collection.find_one_and_update(
             query,
