@@ -226,7 +226,8 @@ class BaseSpotifyDownloader:
                 "retried": 0,
                 "status": "failed",
                 "error": None,
-                "path": None
+                "path": None,
+                "non_retryable": False  # 标记是否是不可重试的错误
             }
 
             # 下载曲目
@@ -260,6 +261,7 @@ class BaseSpotifyDownloader:
                         downloaded_files.append(file_path_str)
                         logging.info(f"曲目 '{track_name}' 下载成功: {file_path_str}")
                         stats["status"] = "success"
+                        stats["error"] = None
                         stats["path"] = file_path_str
                         success = True
                     else:
@@ -272,6 +274,7 @@ class BaseSpotifyDownloader:
                     if not self.is_retryable_error(error_msg) or retry_count == self.max_retries:
                         if not self.is_retryable_error(error_msg):
                             logging.warning(f"曲目 '{track_name}' 下载失败，不可重试的错误: {error_msg}")
+                            stats["non_retryable"] = True  # 标记为不可重试错误
                         else:
                             logging.error(f"曲目 '{track_name}' 下载失败，已重试最大次数: {error_msg}")
 
@@ -371,6 +374,7 @@ class BaseSpotifyDownloader:
                 else:
                     results = None
 
+            '''
             if not tracks:
                 logging.error(f"专辑 '{album_name}' 中没有找到歌曲" + 
                             (f"（与艺术家ID {filter_artist_id} 相关）" if filter_artist_id else ""))
@@ -386,12 +390,14 @@ class BaseSpotifyDownloader:
                     "total": 0,
                     "success": 0,
                     "failed": 0,
+                    "non_retryable": 0,
                     "tracks": {}
                 }
                 if save:
                     self._save_stats('album', album_id, stats)
                     self._save_info('album', album_id, album_info)
                 return False, stats, album_info, []
+            '''
 
             # 统计信息
             stats = {
@@ -403,6 +409,7 @@ class BaseSpotifyDownloader:
                 "total": len(tracks),
                 "success": 0,
                 "failed": 0,
+                "non_retryable": 0,
                 "retried": 0,
                 "status": "failed",
                 "tracks": {}
@@ -426,7 +433,8 @@ class BaseSpotifyDownloader:
                     "status": track_stats.get("status", "failed"),
                     "error": track_stats.get("error"),
                     "path": track_stats.get("path"),
-                    "retried": track_stats.get("retried", 0)
+                    "retried": track_stats.get("retried", 0),
+                    "non_retryable": track_stats.get("non_retryable", False)  # 保存不可重试状态
                 }
 
                 # 更新专辑统计信息
@@ -437,17 +445,22 @@ class BaseSpotifyDownloader:
                     downloaded_files.extend(track_files)
                 else:
                     stats["failed"] += 1
+                    if track_stats.get("non_retryable", False):
+                        stats["non_retryable"] += 1
 
             # 检查下载结果
-            is_success = stats["success"] > 0
+            is_success = (stats["success"] + stats["non_retryable"]) == stats["total"]
 
             if is_success:
                 stats["status"] = "success"
+                stats["error"] = None
                 logging.info(f"专辑 '{album_name}' 下载完成，共下载 {stats['success']}/{stats['total']} 首歌")
                 if stats["failed"] > 0:
                     logging.warning(f"其中 {stats['failed']} 首歌曲下载失败")
                 if stats["retried"] > 0:
                     logging.info(f"共进行了 {stats['retried']} 次重试")
+                if stats["non_retryable"] > 0:
+                    logging.info(f"其中 {stats['non_retryable']} 首歌曲因不可重试错误而跳过")
             else:
                 stats["status"] = "failed"
                 logging.error(f"专辑 '{album_name}' 下载失败，没有成功下载任何歌曲")
@@ -581,6 +594,7 @@ class BaseSpotifyDownloader:
             all_downloaded_files = []
             artist_stats["total_tracks"] = 0
             artist_stats["downloaded_tracks"] = 0
+            artist_stats["non_retryable_tracks"] = 0
 
             for album_data in albums_data:
                 album_id = album_data["album_id"]
@@ -594,6 +608,7 @@ class BaseSpotifyDownloader:
                     album_stats = artist_stats["albums"][album_id]
                     artist_stats["total_tracks"] += album_stats.get("total", 0)
                     artist_stats["downloaded_tracks"] += album_stats.get("success", 0)
+                    artist_stats["non_retryable_tracks"] += album_stats.get("non_retryable", 0)
 
                     # 收集文件路径
                     for track_stats in album_stats.get("tracks", {}).values():
@@ -617,6 +632,7 @@ class BaseSpotifyDownloader:
                 # 更新艺术家总曲目和已下载曲目数
                 artist_stats["total_tracks"] += album_stats.get("total", 0)
                 artist_stats["downloaded_tracks"] += album_stats.get("success", 0)
+                artist_stats["non_retryable_tracks"] += album_stats.get("non_retryable", 0)
 
                 if success:
                     artist_stats["successful_albums"] = artist_stats.get("successful_albums", 0) + 1
@@ -637,6 +653,7 @@ class BaseSpotifyDownloader:
 
             if is_success:
                 artist_stats["status"] = "success"
+                artist_stats["error"] = None
             else:
                 artist_stats["status"] = "failed"
 
@@ -644,6 +661,8 @@ class BaseSpotifyDownloader:
             logging.info(f"艺术家 '{artist_name}' 所有专辑下载完成")
             logging.info(f"共找到 {artist_stats['total_albums']} 张专辑，成功下载 {artist_stats['successful_albums']} 张")
             logging.info(f"总计 {artist_stats['total_tracks']} 首歌曲，成功下载 {artist_stats['downloaded_tracks']} 首")
+            if (artist_stats['non_retryable_tracks']):
+                logging.info(f"\t其中 {artist_stats['non_retryable_tracks']} 首歌曲因不可重试错误而跳过")
 
             # 保存统计信息和元数据
             if save:
@@ -680,6 +699,7 @@ class BaseSpotifyDownloader:
             "failed_albums": 0,
             "total_tracks": 0,
             "downloaded_tracks": 0,
+            "non_retryable_tracks": 0,
             "status": "pending",
             "albums": {}
         }
