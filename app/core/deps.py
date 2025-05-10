@@ -32,9 +32,18 @@ async def get_spotify_repo(
     """
     return SpotifyDataRepository(db)
 
+async def get_download_task_repository(
+    db = Depends(get_db)
+) -> DownloadTaskRepository:
+    """
+    获取DownloaderService实例
+    """
+    return DownloadTaskRepository(db)
+
 async def get_downloader_service(
     db = Depends(get_db),
     spotify_repo: SpotifyDataRepository = Depends(get_spotify_repo),
+    task_repo: DownloadTaskRepository = Depends(get_download_task_repository),
 ) -> DownloaderService:
     """
     获取下载服务实例
@@ -44,9 +53,6 @@ async def get_downloader_service(
     返回：
         DownloaderService实例
     """
-    # 创建所需的仓库
-    task_repo = DownloadTaskRepository(db)
-
     # 创建下载服务
     downloader_service = DownloaderService(
         db=db,

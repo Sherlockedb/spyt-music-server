@@ -7,11 +7,16 @@ from app.core.config import settings
 from app.core.database import connect_to_mongo, close_mongo_connection, get_db
 from app.db.schemas import init_db
 
+from app.workers.scheduler import TaskScheduler
+from app.db.repositories.download_tasks import DownloadTaskRepository
+from app.db.repositories.spotify_data import SpotifyDataRepository
+
 # 创建FastAPI应用
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
+scheduler = None
 
 # 设置CORS
 if settings.BACKEND_CORS_ORIGINS:
@@ -49,10 +54,22 @@ async def startup_event():
     db = await get_db()
     await init_db(db) # 使用get_db()获取数据库连接
 
+    # 初始化定时任务调度器
+    global scheduler
+    task_repo = DownloadTaskRepository(db)
+    spotify_repo = SpotifyDataRepository(db)
+    scheduler = TaskScheduler(task_repo, spotify_repo)
+    await scheduler.start()
+
 @app.on_event("shutdown")
 async def shutdown_event():
     """应用关闭时执行的操作"""
     await close_mongo_connection()
+
+    # 停止定时任务调度器
+    global scheduler
+    if scheduler:
+        await scheduler.stop()
 
 # 根路径
 @app.get("/")

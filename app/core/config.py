@@ -60,6 +60,7 @@ class Settings(BaseSettings):
     # 工作进程配置
     WORKER_CONCURRENCY: int = 2
     WORKER_POLL_INTERVAL: int = 5
+    TASK_RETENTION_DAYS: int = 30  # 任务保留天数
 
     @field_validator("WORKER_POLL_INTERVAL", mode="before")
     @classmethod
