@@ -3,12 +3,15 @@ from fastapi import Depends
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from app.db.repositories.users import UserRepository
-from app.services.user_service import UserService
-from app.services.downloader_service import DownloaderService
 from app.db.repositories.download_tasks import DownloadTaskRepository
 from app.db.repositories.spotify_data import SpotifyDataRepository
-from app.services.spotify_service import SpotifyService
 from app.db.repositories.search_cache import SearchCacheRepository
+
+from app.services.spotify_service import SpotifyService
+from app.services.user_service import UserService
+from app.services.downloader_service import DownloaderService
+from app.services.file_service import FileService
+
 from app.core.database import get_db
 
 # 获取用户仓库
@@ -72,3 +75,11 @@ async def get_spotify_service(
         spotify_repo=spotify_repo,
         search_cache_repo=search_cache_repo
     )
+
+async def get_file_service(
+    spotify_repo: SpotifyDataRepository = Depends(get_spotify_repo)
+) -> FileService:
+    """
+    获取文件服务实例
+    """
+    return FileService(spotify_repo=spotify_repo)
