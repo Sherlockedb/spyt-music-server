@@ -5,6 +5,7 @@ import sys
 import uuid
 import multiprocessing
 from typing import List, Dict, Any
+import setproctitle
 
 from app.core.config import settings
 from app.downloader.download_worker import run_worker
@@ -125,16 +126,23 @@ class WorkerManager:
         for process in self.processes:
             if process.is_alive():
                 logging.info(f"正在终止工作者进程 {process.name} (PID: {process.pid})")
-                process.terminate()
+                # 发送SIGTERM信号以允许进程优雅关闭
+                os.kill(process.pid, signal.SIGTERM)
         
         # 等待所有进程终止
         for process in self.processes:
-            process.join(timeout=10)
+            process.join(timeout=30)
             
             # 如果进程仍在运行，强制终止
             if process.is_alive():
                 logging.warning(f"工作者进程 {process.name} 没有响应，强制终止")
                 process.kill()
+                process.join(timeout=10)
+
+                # 如果还是没响应，强制终止
+                if process.is_alive():
+                    logging.warning(f"工作者进程 {process.name} 没有响应，强制终止")
+                    process.kill()
         
         self.processes = []
         logging.info("所有工作者进程已停止")
@@ -156,11 +164,7 @@ def run_worker_process(worker_id, poll_interval):
     """
     try:
         # 设置进程标题
-        try:
-            import setproctitle
-            setproctitle.setproctitle(f"spyt_music_worker_{worker_id}")
-        except ImportError:
-            pass
+        setproctitle.setproctitle(f"spyt_music_worker_{worker_id}")
         
         # 直接创建并运行DownloadWorker实例
         run_worker(worker_id, poll_interval)
