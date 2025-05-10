@@ -28,6 +28,7 @@ tenacity>=8.0.1  # 重试机制
 requests>=2.26.0
 aiofiles>=0.7.0  # 异步文件操作
 python-slugify>=5.0.2  # URL 友好的字符串
+cachetools>=5.3.0
 
 # 日志
 loguru>=0.5.3

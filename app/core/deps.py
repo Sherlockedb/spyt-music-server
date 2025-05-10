@@ -7,6 +7,8 @@ from app.services.user_service import UserService
 from app.services.downloader_service import DownloaderService
 from app.db.repositories.download_tasks import DownloadTaskRepository
 from app.db.repositories.spotify_data import SpotifyDataRepository
+from app.services.spotify_service import SpotifyService
+from app.db.repositories.search_cache import SearchCacheRepository
 from app.core.database import get_db
 
 # 获取用户仓库
@@ -19,7 +21,18 @@ async def get_user_service(
 ) -> UserService:
     return UserService(user_repo)
 
-async def get_downloader_service(db = Depends(get_db)) -> DownloaderService:
+async def get_spotify_repo(
+    db = Depends(get_db)
+) -> SpotifyDataRepository:
+    """
+    获取Spotify数据仓库实例
+    """
+    return SpotifyDataRepository(db)
+
+async def get_downloader_service(
+    db = Depends(get_db),
+    spotify_repo: SpotifyDataRepository = Depends(get_spotify_repo),
+) -> DownloaderService:
     """
     获取下载服务实例
 
@@ -29,7 +42,6 @@ async def get_downloader_service(db = Depends(get_db)) -> DownloaderService:
         DownloaderService实例
     """
     # 创建所需的仓库
-    spotify_repo = SpotifyDataRepository(db)
     task_repo = DownloadTaskRepository(db)
 
     # 创建下载服务
@@ -40,3 +52,23 @@ async def get_downloader_service(db = Depends(get_db)) -> DownloaderService:
     )
 
     return downloader_service
+
+async def get_search_cache_repo(
+    db = Depends(get_db)
+) -> SearchCacheRepository:
+    """
+    获取搜索缓存仓库实例
+    """
+    return SearchCacheRepository(db)
+
+async def get_spotify_service(
+    spotify_repo: SpotifyDataRepository = Depends(get_spotify_repo),
+    search_cache_repo: SearchCacheRepository = Depends(get_search_cache_repo)
+) -> SpotifyService:
+    """
+    获取Spotify服务实例
+    """
+    return SpotifyService(
+        spotify_repo=spotify_repo,
+        search_cache_repo=search_cache_repo
+    )
