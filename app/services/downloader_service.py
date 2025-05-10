@@ -182,7 +182,11 @@ class DownloaderService:
         if not task:
             logging.error(f"任务不存在: {task_id}")
             return False
-        
+
+        # 判断状态是否成功
+        if task['status'] == STATUS_SUCCESS:
+            return True
+
         # 检查任务状态
         if task['status'] != STATUS_IN_PROGRESS:
             logging.warning(f"任务状态不是 '{STATUS_IN_PROGRESS}': {task['status']}")
