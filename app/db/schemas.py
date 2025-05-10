@@ -102,7 +102,10 @@ async def setup_indexes(db):
     for collection_name, indexes in COLLECTION_INDEXES.items():
         for index_spec in indexes:
             try:
-                await db[collection_name].create_index(**index_spec)
+                # 提取keys参数和其他选项
+                keys = index_spec.pop("key")
+
+                await db[collection_name].create_index(keys, **index_spec)
             except Exception as e:
                 print(f"创建索引时出错 ({collection_name}): {e}")
 

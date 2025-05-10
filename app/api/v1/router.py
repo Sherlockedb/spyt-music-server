@@ -1,10 +1,16 @@
 from fastapi import APIRouter
+from app.api.v1.endpoints import users, auth
 
 api_router = APIRouter()
 
-# 这里将导入和包含各个端点路由器
-# 例如：
-# from app.api.v1.endpoints import users, search, downloads
-# api_router.include_router(users.router, prefix="/users", tags=["users"])
-# api_router.include_router(search.router, prefix="/search", tags=["search"])
+# 认证相关路由
+api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])
+
+# 用户相关路由
+api_router.include_router(users.router, prefix="/users", tags=["users"])
+
+# 注意：以下路由将在后续实现相应功能时添加
 # api_router.include_router(downloads.router, prefix="/downloads", tags=["downloads"])
+# api_router.include_router(search.router, prefix="/search", tags=["search"])
+# api_router.include_router(library.router, prefix="/library", tags=["library"])
+# api_router.include_router(stream.router, prefix="/stream", tags=["stream"])
