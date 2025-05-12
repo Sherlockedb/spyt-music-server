@@ -64,7 +64,7 @@ def setup_logging():
     logging.basicConfig(handlers=[InterceptHandler()], level=0)
     
     # 拦截第三方库日志
-    for logger_name in ("uvicorn", "uvicorn.error", "fastapi"):
+    for logger_name in ("uvicorn", "uvicorn.error", "fastapi", "uvicorn.access"):
         logging_logger = logging.getLogger(logger_name)
         logging_logger.handlers = [InterceptHandler()]
     

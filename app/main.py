@@ -6,10 +6,13 @@ from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.database import connect_to_mongo, close_mongo_connection, get_db
 from app.db.schemas import init_db
+from app.core.logging import setup_logging
 
 from app.workers.scheduler import TaskScheduler
 from app.db.repositories.download_tasks import DownloadTaskRepository
 from app.db.repositories.spotify_data import SpotifyDataRepository
+
+setup_logging()
 
 # 创建FastAPI应用
 app = FastAPI(
@@ -44,7 +47,6 @@ async def add_utf8_charset(request, call_next):
         response.headers["Content-Type"] = "application/json; charset=utf-8"
     
     return response
-
 
 # 启动与关闭事件
 @app.on_event("startup")
@@ -89,4 +91,5 @@ if __name__ == "__main__":
         host=settings.HOST,
         port=settings.PORT,
         reload=True,
+        log_config=None,
     )
