@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 
-from app.models.download import DownloadTaskCreate, DownloadTaskResponse
+from app.models.download import DownloadTaskCreate, DownloadTaskResponse, PaginatedDownloadTaskResponse
 from app.services.downloader_service import DownloaderService
 from app.core.auth import get_current_user
 from app.core.deps import get_downloader_service
@@ -52,7 +52,7 @@ async def create_download_task(
             detail=f"创建下载任务失败: {str(e)}"
         )
 
-@router.get("/", response_model=List[DownloadTaskResponse])
+@router.get("/", response_model=PaginatedDownloadTaskResponse)
 async def list_download_tasks(
     status: Optional[str] = None,
     entity_id: Optional[str] = None,
@@ -64,17 +64,24 @@ async def list_download_tasks(
     """获取下载任务列表"""
     tasks = []
 
-    if status:
-        tasks = await downloader_service.task_repo.get_tasks_by_status(status, skip, limit)
-    elif entity_id:
-        tasks = await downloader_service.task_repo.get_tasks_by_entity(entity_id)
-    else:
-        # 获取所有任务，默认按创建时间排序
-        tasks = await downloader_service.task_repo.find(
-            {}, skip=skip, limit=limit, sort=[("created_at", -1)]
-        )
+    query = {}
 
-    return tasks
+    if status:
+        query["status"] = status
+
+    if entity_id:
+        query["entity_id"] = entity_id
+
+    # 使用优化的方法一次性获取列表和总数
+    result = await downloader_service.task_repo.get_paginated_tasks(
+        query=query,
+        skip=skip,
+        limit=limit,
+        sort_field="created_at",
+        sort_direction=-1
+    )
+
+    return result
 
 @router.get("/statistics", response_model=Dict[str, int])
 async def get_download_statistics(

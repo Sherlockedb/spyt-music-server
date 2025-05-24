@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -30,3 +30,7 @@ class DownloadTaskResponse(BaseModel):
         "populate_by_name": True,
         "arbitrary_types_allowed": True  # 允许非标准类型如ObjectId
     }
+
+class PaginatedDownloadTaskResponse(BaseModel):
+    total: int
+    tasks: List[DownloadTaskResponse]
