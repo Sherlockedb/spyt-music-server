@@ -192,6 +192,7 @@ class BaseSpotifyDownloader:
                 output=output_format,
                 lyrics=True,
                 threads=1,
+                bitrate='320k',
                 simple_tui=True
             )
 
