@@ -53,7 +53,7 @@ class ProductionSettings(Settings):
         return v
 
 
-@lru_cache()
+# @lru_cache()
 def get_settings() -> Settings:
     """
     获取当前环境的配置

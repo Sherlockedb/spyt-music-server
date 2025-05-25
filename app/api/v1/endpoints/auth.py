@@ -67,10 +67,7 @@ async def refresh_token(
             )
 
         # 创建新令牌
-        return {
-            "access_token": user_service.create_tokens(user_id),
-            "token_type": "bearer"
-        }
+        return user_service.create_tokens(user_id)
 
     except JWTError:
         raise HTTPException(

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Any, Dict
 
 from passlib.context import CryptContext
@@ -20,9 +20,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def create_access_token(subject: str, expires_delta: Optional[timedelta] = None) -> str:
     """创建访问令牌"""
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(
+        expire = datetime.now(timezone.utc) + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
 
@@ -37,7 +37,7 @@ def create_access_token(subject: str, expires_delta: Optional[timedelta] = None)
 
 def create_refresh_token(subject: str) -> str:
     """创建刷新令牌"""
-    expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
     to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
     encoded_jwt = jwt.encode(

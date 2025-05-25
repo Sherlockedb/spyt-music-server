@@ -180,10 +180,6 @@ class DownloadTaskRepository(BaseRepository):
 
         # 检查重试次数
         retries = task.get("retries", 0)
-        max_retries = task.get("max_retries", 3)
-
-        if retries >= max_retries:
-            return None
 
         # 更新任务状态为待处理
         update = {

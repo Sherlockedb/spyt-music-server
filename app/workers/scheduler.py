@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -106,7 +106,7 @@ class TaskScheduler:
             in_progress_tasks = await self.task_repo.find({"status": STATUS_IN_PROGRESS})
 
             # 计算超时时间（默认1小时）
-            timeout_threshold = datetime.utcnow() - timedelta(hours=1)
+            timeout_threshold = datetime.now(timezone.utc) - timedelta(hours=1)
 
             cleaned_count = 0
 
@@ -121,7 +121,7 @@ class TaskScheduler:
                         {"$set": {
                             "status": STATUS_FAILED,
                             "error": "任务执行超时",
-                            "completed_at": datetime.utcnow()
+                            "completed_at": datetime.now(timezone.utc)
                         }}
                     )
 
@@ -141,7 +141,7 @@ class TaskScheduler:
 
         try:
             # 计算过期时间（默认30天）
-            expiry_threshold = datetime.utcnow() - timedelta(days=settings.TASK_RETENTION_DAYS)
+            expiry_threshold = datetime.now(timezone.utc) - timedelta(days=settings.TASK_RETENTION_DAYS)
 
             # 找出所有已完成/失败且完成时间超过保留期的任务
             query = {
@@ -194,7 +194,7 @@ class TaskScheduler:
             stats["library_artists"] = artist_count
 
             # 更新时间
-            stats["updated_at"] = datetime.utcnow()
+            stats["updated_at"] = datetime.now(timezone.utc)
 
             # 保存统计信息到数据库
             await self._save_statistics(stats)
